@@ -14,6 +14,7 @@ int main(int argc, char** argv) {
   int source;               // remetente da integral
   int dest = 0;               // destino das integrais (nó 0)
   int tag = 200;              // tipo de mensagem (único)
+  int resto = 0;
   MPI_Status status;
 
   float calcula(float local_a, float local_b, int local_n, float h);
@@ -26,19 +27,32 @@ int main(int argc, char** argv) {
   local_n = n / p;
   local_a = a + my_rank * local_n * h;
   local_b = local_a + local_n * h;
-
-  integral = calcula(local_a, local_b, local_n, h);
-  if(my_rank == 0) {
-    total = integral;
-    for(source=1; source<p; source++) {
-      MPI_Recv(&integral, 1, MPI_FLOAT, source, tag,
-        MPI_COMM_WORLD, &status);
-      total +=integral;
-    }
-  }else{
-    MPI_Send(&integral, 1, MPI_FLOAT, dest,
-      tag, MPI_COMM_WORLD);
+  // somando o resto no final
+  if(my_rank == p-1){
+    local_n = (n/p) + (n%p);
+    local_b = b;
   }
+
+  //balanceamento
+  resto = n%p;
+  if(resto != 0){
+    if(my_rank < resto) local_n = local_n + 1;
+    local_a = a + my_rank * local_n * h;
+    local_b = local_a + local_n * h;
+  }
+  integral = calcula(local_a, local_b, local_n, h);
+  // if(my_rank == 0) {
+  //   total = integral;
+  //   for(source=1; source<p; source++) {
+  //     MPI_Recv(&integral, 1, MPI_FLOAT, source, tag,
+  //       MPI_COMM_WORLD, &status);
+  //     total +=integral;
+  //   }
+  // }else{
+  //   MPI_Send(&integral, 1, MPI_FLOAT, dest,
+  //     tag, MPI_COMM_WORLD);
+  // }
+  MPI_Reduce(&integral, &total, 1, MPI_FLOAT, MPI_SUM, 0, MPI_COMM_WORLD);
 
   if(my_rank == 0) printf("Resultado: %f\n", total);
 
