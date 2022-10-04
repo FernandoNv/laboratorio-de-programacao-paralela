@@ -1,7 +1,9 @@
 #include <stdio.h>
 #include <mpi.h>
+#include <time.h>
 
 int main(int argc, char** argv) {
+  time_t begin = time(NULL);
   int my_rank;
   int p;                     // número de processos
   float a=0.0, b=1.0;        //intervalo a calcular
@@ -54,7 +56,12 @@ int main(int argc, char** argv) {
   // }
   MPI_Reduce(&integral, &total, 1, MPI_FLOAT, MPI_SUM, 0, MPI_COMM_WORLD);
 
-  if(my_rank == 0) printf("Resultado: %f\n", total);
+  if(my_rank == 0){
+    printf("Resultado: %f\n", total);
+    time_t end = time(NULL);
+    printf("Tempo: %ld \n", (end-begin));
+  }
+    
 
   MPI_Finalize();
 
