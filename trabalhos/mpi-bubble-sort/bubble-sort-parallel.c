@@ -78,12 +78,15 @@ void compareSplit(int idS, int* A, int n){
   int* arrS = (int* )malloc(nL * sizeof(int));
   int* result = (int* )malloc(2*nL* sizeof(int));
   MPI_Status status;
+  MPI_Request request;
+
+  // printf("p(%d) - tamanho do intervalo %d\n", id, nL);
 
   //1.
   for(int i = start, j = 0; i < end; i++, j++) arr[j] = A[i];
-  printf("p(%d) - rodei a ordenação interna\n", id);
+  // printf("p(%d) - rodei a ordenação interna\n", id);
   oddEvenSort(arr, nL);
-  printf("p(%d) - terminei a ordenação interna\n", id);
+  // printf("p(%d) - terminei a ordenação interna\n", id);
 
   if(id == idS){
     // printf("id = %d e idS = %d iguais", id, idS);
@@ -92,18 +95,18 @@ void compareSplit(int idS, int* A, int n){
   }
 
   //2.
-  printf("p(%d) - vou enviar a parte do processo irmao p(%d) arr de %d elementos \n", id, idS, nL);
-  printf("p(%d) - vou receber a parte do processo irmao p(%d) arr de %d elementos \n", id, idS, nL);
+  // printf("p(%d) - vou enviar a parte do processo irmao p(%d) arr de %d elementos \n", id, idS, nL);
+  // printf("p(%d) - vou receber a parte do processo irmao p(%d) arr de %d elementos \n", id, idS, nL);
   //Estava causando deadlock quando enviava o vetor pro processo irmao e esperava ele enviar a outra parte do vetor
   //https://stackoverflow.com/questions/15833947/mpi-hangs-on-mpi-send-for-large-messages
   MPI_Sendrecv(
     arr, nL, MPI_INT, idS, 0,
     arrS, nL, MPI_INT, idS, 0, MPI_COMM_WORLD, &status);
-  // MPI_Send(arr, nL, MPI_INT, idS, 0, MPI_COMM_WORLD); //tag 0 - envio do start do arry do prcesso corrente
-  printf("p(%d) - enviei a parte do processo irmao p(%d) arr de %d elementos \n", id, idS, nL);
-  printf("p(%d) - recebi a parte do processo irmao p(%d) arr de %d elementos \n", id, idS, nL);
-  
-  // MPI_Recv(arrS, nL, MPI_INT, idS, 0, MPI_COMM_WORLD, &status);
+  //MPI_Isend(arr, nL, MPI_INT, idS, 0, MPI_COMM_WORLD, &request);
+  // printf("p(%d) - enviei a parte do processo irmao p(%d) arr de %d elementos \n", id, idS, nL);
+  // printf("p(%d) - recebi a parte do processo irmao p(%d) arr de %d elementos \n", id, idS, nL);
+  //MPI_Recv(arrS, nL, MPI_INT, idS, 0, MPI_COMM_WORLD, &status);
+  //MPI_Wait(&request, &status);
 
   // for(int i = startS, j = 0; i < endS; i++, j++){
   //   arrS[j] = A[i];
@@ -115,9 +118,9 @@ void compareSplit(int idS, int* A, int n){
   // printA(arrS, 0, nL);
 
   //3.
-  printf("p(%d) - Vou fazer o merge...\n", id);
+  // printf("p(%d) - Vou fazer o merge...\n", id);
   merge(nL, arr, arrS, result);
-  printf("p(%d) - Terminei o merge...\n", id);
+  // printf("p(%d) - Terminei o merge...\n", id);
   // printf("p(%d) - Esta ordenado? %d\n", id, isSorted(result, 2*nL));
 
   // printf("p(%d) - Array do result \n", id);
@@ -126,33 +129,41 @@ void compareSplit(int idS, int* A, int n){
   //4.
   if(id > idS){
     //guardar os dados da segunda metade
+    // printf("p(%d) - rodei aqui...id > idS (%d, %d) \n", id, idS*nL, end);
     for(int i = idS*nL, j = 0; i < end; i++, j++){
       A[i] = result[j];
     }
 
-    // printf("p(%d) - A = ", id);
+    // printf("p(%d) - ORDENADO A = ", id);
     // printA(A, idS*nL, end);
   }else{
     //guardar os dados da primeira metade
-    for(int i = start, j = 0; i < (idS)*2*nL; i++, j++){
+    // printf("p(%d) - rodei aqui...id <= idS I(%d, %d) IA(%d, %d) IAS(%d, %d)\n", id, id*nL, (id+2)*nL, start, end, idS*nL, (idS+1)*nL);
+    for(int i = start, j = 0; i < (idS+1)*nL; i++, j++){
       A[i] = result[j];
     }
 
-    // printf("p(%d) - A = ", id);
-    // printA(A, start, (idS)*2*nL);
+    // printf("p(%d) - ORDENADO A = ", id);
+    // printA(A, start, (idS+1)*nL);
   }
+
+  // MPI_Sendrecv(
+  //   A, n, MPI_INT, idS, 0,
+  //   A, n, MPI_INT, idS, 0, MPI_COMM_WORLD, &status);
 
   free(arr);
   free(arrS);
   free(result);
 }
 
-void parallelOddEvenSort(int A[], int n){
+void parallelOddEvenSort(int* A, int n){
   int id, np;
   MPI_Comm_rank(MPI_COMM_WORLD, &id);
   MPI_Comm_size(MPI_COMM_WORLD, &np);
 
   for(int i = 0; i<np; i++){
+    // printf("p(%d) - INICIO DO LOOP A = ", id);
+    // printA(A, 0, n);
     //odd iteration
     if(i%2 == 1){
       printf("p(%d) - iteração impar - ", id);
@@ -162,7 +173,7 @@ void parallelOddEvenSort(int A[], int n){
         printf("p(%d) - processo impar \n", id);
         //compare-exchange with the right neighbour process
         if(id < np-1){
-          // compare_split_min(id-1); 
+          // compare_split_min(id+1); 
           compareSplit(id+1,A,n);
         }
       }else{
@@ -197,7 +208,12 @@ void parallelOddEvenSort(int A[], int n){
         compareSplit(id-1,A,n);
       }
     }
+    
+    
   }
+
+  // printf("p(%d) - TERMINO DA FUNÇÃO A = ", id);
+  // printA(A, 0, n);
 }
 
 void writeResult(int* A, int n, char fileName[100]){
@@ -233,6 +249,7 @@ int main(int argc, char** argv){
   MPI_Init(&argc, &argv);
   MPI_Comm_rank(MPI_COMM_WORLD, &id);
   MPI_Comm_size(MPI_COMM_WORLD, &np);
+  MPI_Status status;
 
   if(id == 0){
     getNumbers(A, count, "4.txt");
@@ -240,14 +257,20 @@ int main(int argc, char** argv){
   MPI_Bcast(A, count, MPI_INT, 0, MPI_COMM_WORLD);
   startT = clock();
   parallelOddEvenSort(A, count);
+  // printf("p(%d) - %d\n", id, isSorted(A, count));
+  MPI_Finalize();
+
   if(id == 0){
     double stopT = clock();
-    printf("%.5f s\n", (stopT-startT)/CLOCKS_PER_SEC);
+    printf("p(%d) - isSorted ? %d \n", id, isSorted(A, count));
+    printf("p(%d) - %.5f s\n", id, (stopT-startT)/CLOCKS_PER_SEC);
   }
-  //printf("%d\n", isSorted(A, count));
-  MPI_Finalize();
-  // if(id == 0 && isSorted(A, count)){
-  //   writeResult(A, count, "result.tx");
+  // printf("p(%d) - isSorted ? %d \n", id, isSorted(A, count));
+  // if(isSorted(A, count)){
+  //   double stopT = clock();
+  //   printf("p(%d) - %.5f s\n", id, (stopT-startT)/CLOCKS_PER_SEC);
+    // printA(A, 0, count);
+    //writeResult(A, count, "result.tx");
   // }
   free(A);
   return 0;

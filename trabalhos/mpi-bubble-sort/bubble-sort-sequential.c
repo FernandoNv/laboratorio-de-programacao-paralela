@@ -89,15 +89,15 @@ int isSorted(int* A, int n){
 }
 
 int main(int argc, char** argv){
-  int count = 40000, *A = malloc(sizeof(int)*count);
+  int count = 20000, *A = malloc(sizeof(int)*count);
   double stopT, startT;
-  getNumbers(A, count, "4.txt");
+  getNumbers(A, count, "2.txt");
   startT = clock();
   OddEvenSort(A, count);
   stopT = clock();
   printf("%.5f s\n", (stopT-startT)/CLOCKS_PER_SEC);
-  // printf("%d\n", isSorted(A, count));
-  // writeResult(A, count, "result.tx");
+  printf("%d\n", isSorted(A, count));
+  writeResult(A, count, "result.tx");
   free(A);
   return 0;
 }
