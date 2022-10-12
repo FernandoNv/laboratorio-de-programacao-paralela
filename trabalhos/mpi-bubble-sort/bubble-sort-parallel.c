@@ -61,13 +61,6 @@ void printA(int A[], int start, int end){
   printf("\n");
 }
 
-void printInner(int A[], int n, int id){
-  for(int i = 0; i < n; i++){
-    printf("Processo: %d - elemento: %d\n", id, A[i]);
-  }
-  printf("\n");
-}
-
 void compareSplit(int idS, int* A, int n){
   // 1. Copiar os dados para um array novo e ordena-lo com o OddEvenSort
   // 2. Enviar esse array pro processo irmao
@@ -210,9 +203,9 @@ void parallelOddEvenSort(int A[], int n){
 void writeResult(int* A, int n, char fileName[100]){
   FILE* filePointer = fopen(fileName, "w");
   if( filePointer == NULL ){
-    printf("%s file failed to open.", fileName);
+    printf("%s falha ao abrir o arquivo", fileName);
   }else{  
-    printf("The file is now opened.\n") ;
+    printf("Arquivo aberto.\n") ;
     
     for(int i = 0; i < n; i++){
       fprintf(filePointer,"%d", A[i]);
@@ -220,8 +213,8 @@ void writeResult(int* A, int n, char fileName[100]){
     }
     // Closing the file using fclose()
     fclose(filePointer);
-    printf("Data successfully written in file %s\n", fileName);
-    printf("The file is now closed.\n") ;
+    printf("Dados salvos %s\n", fileName);
+    printf("Arquivo fechado.\n");
   }
 }
 
@@ -229,7 +222,7 @@ void getNumbers(int* A, int n, char fileName[100]){
   FILE *filePointer = fopen(fileName, "r");
   // display numbers
   for(int i = 0; i < n; i++) fscanf(filePointer, "%d", &A[i]);
-  printf("\nEnd of file.\n");
+  printf("\nFim do arquivo.\n");
   // close connection
   fclose(filePointer);
 }
