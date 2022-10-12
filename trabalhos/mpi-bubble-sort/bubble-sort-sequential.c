@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 void compareExchange(int* a, int* b){
   // printf("%.2f,  %.2f\n", (*a), (*b));
@@ -67,7 +68,7 @@ void getNumbers(int* A, int n, char fileName[100]){
 }
 
 //https://en.wikipedia.org/wiki/Odd%E2%80%93even_sort
-void OddEvenSort(int A[], int n){
+void OddEvenSort(int* A, int n){
   for (int i=1; i<n; i++) {
     for (int j = 1; j < n - 1; j += 2) {
       if (A[j] > A[j + 1]) {
@@ -82,11 +83,21 @@ void OddEvenSort(int A[], int n){
   }
 }
 
+int isSorted(int* A, int n){
+  for(int i = 0; i < n-1; i+=2) if(A[i] > A[i+1]) return 0;
+  return 1;
+}
+
 int main(int argc, char** argv){
   int count = 40000, *A = malloc(sizeof(int)*count);
+  double stopT, startT;
   getNumbers(A, count, "4.txt");
-  bubbleSort(A, count);
-  writeResult(A, count, "result.tx");
+  startT = clock();
+  OddEvenSort(A, count);
+  stopT = clock();
+  printf("%.5f s\n", (stopT-startT)/CLOCKS_PER_SEC);
+  // printf("%d\n", isSorted(A, count));
+  // writeResult(A, count, "result.tx");
   free(A);
   return 0;
 }

@@ -118,7 +118,7 @@ void compareSplit(int idS, int* A, int n){
   printf("p(%d) - Vou fazer o merge...\n", id);
   merge(nL, arr, arrS, result);
   printf("p(%d) - Terminei o merge...\n", id);
-  printf("p(%d) - Esta ordenado? %d\n", id, isSorted(result, 2*nL));
+  // printf("p(%d) - Esta ordenado? %d\n", id, isSorted(result, 2*nL));
 
   // printf("p(%d) - Array do result \n", id);
   // printA(result, 0, nL*2);
@@ -240,11 +240,11 @@ int main(int argc, char** argv){
   MPI_Bcast(A, count, MPI_INT, 0, MPI_COMM_WORLD);
   startT = clock();
   parallelOddEvenSort(A, count);
-  printf("%d\n", isSorted(A, count));
   if(id == 0){
     double stopT = clock();
-    printf("%.2f secs\n", (stopT-startT)/CLOCKS_PER_SEC);
+    printf("%.5f s\n", (stopT-startT)/CLOCKS_PER_SEC);
   }
+  //printf("%d\n", isSorted(A, count));
   MPI_Finalize();
   // if(id == 0 && isSorted(A, count)){
   //   writeResult(A, count, "result.tx");
