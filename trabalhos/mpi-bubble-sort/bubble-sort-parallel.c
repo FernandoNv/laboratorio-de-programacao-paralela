@@ -11,7 +11,7 @@ void compareExchange(int* a, int* b){
   }
 }
 
-void oddEvenSort(int A[], int n){
+void oddEvenSort(int* A, int n){
   for (int i=1; i<n; i++) {
     for (int j = 1; j < n - 1; j += 2) {
       if (A[j] > A[j + 1]) {
@@ -26,7 +26,20 @@ void oddEvenSort(int A[], int n){
   }
 }
 
-void merge(int n, int a[n], int b[n], int result[2*n]){
+void bubbleSort(int* A, int n){
+  for(int i = 0; i < n-1; i++){
+    for (int j = 0; j < n-1; j++){
+      compareExchange(&A[j], &A[j+1]);
+    }
+  }
+}
+
+int isSorted(int* A, int n){
+  for(int i = 0; i < n-1; i+=2) if(A[i] > A[i+1]) return 0;
+  return 1;
+}
+
+void merge(int n, int* a, int* b, int* result){
   int i = 0, j = 0, k = 0;
 
   while(i < n && j < n){
@@ -66,24 +79,20 @@ void compareSplit(int idS, int A[], int n){
   int id, np;
   MPI_Comm_rank(MPI_COMM_WORLD, &id);
   MPI_Comm_size(MPI_COMM_WORLD, &np);
-  int nL = n/np;
-  int arr[nL];
-  int arrS[nL];
-  int result[2*nL];
+  int nL = n/np, start = id*nL, end = (id+1)*nL, startS, endS;
+  int* arr = (int* )malloc(nL * sizeof(int));
+  int* arrS = (int* )malloc(nL * sizeof(int));
+  int* result = (int* )malloc(2*nL* sizeof(int));
   MPI_Status status;
 
   //1.
   // printf("[%d, %d)\n", id*nL, (id+1)*nL);
-  for(int i = id*nL, j = 0; i < (id+1)*nL; i++, j++){
+  for(int i = start, j = 0; i < end; i++, j++){
     arr[j] = A[i];
   }
-  
-  compareSplit(idS, A, n/np);
-
-  if(n < np){
-    //ordenação basica
-    
-  }
+  printf("p(%d) - rodei a ordenação interna\n", id);
+  oddEvenSort(arr, nL);
+  printf("p(%d) - terminei a ordenação interna\n", id);
 
   if(id == idS){
     // printf("id = %d e idS = %d iguais", id, idS);
@@ -92,32 +101,51 @@ void compareSplit(int idS, int A[], int n){
   }
 
   //2.
-  MPI_Send(arr, nL, MPI_INT, idS, 0, MPI_COMM_WORLD);
-  MPI_Recv(arrS, nL, MPI_INT, idS, 0, MPI_COMM_WORLD, &status);
+  MPI_Send(&start, 1, MPI_INT, idS, 0, MPI_COMM_WORLD); //tag 0 - envio do start do arry do prcesso corrente
+  MPI_Send(&end, 1, MPI_INT, idS, 1, MPI_COMM_WORLD); // tag 1 - envio do end do arry do processo corrent
+  printf("p(%d) - enviei a parte do processo irmao p(%d) arr de %d elementos \n", id, idS, nL);
+  
+  MPI_Recv(&startS, 1, MPI_INT, idS, 0, MPI_COMM_WORLD, &status);
+  MPI_Recv(&endS, 1, MPI_INT, idS, 1, MPI_COMM_WORLD, &status);
+  printf("p(%d) - recebi a parte do processo irmao p(%d) arr de %d elementos \n", id, idS, nL);
+
+  for(int i = startS, j = 0; i < endS; i++, j++){
+    arrS[j] = A[i];
+  }
+
+  printf("p(%d) - Array ", id);
+  printA(arr, nL);
+  printf("p(%d) - ArrayS ", idS);
+  printA(arrS, nL);
 
   //3.
+  printf("p(%d) - Vou fazer o merge...\n", id);
   merge(nL, arr, arrS, result);
+  printf("p(%d) - Terminei o merge...\n", id);
+  printf("p(%d) - Esta ordenado? %d\n", id, isSorted(result, 2*nL));
+  free(arr);
+  free(arrS);
 
-  // printf("Array do id ");
-  // printA(arr, nL);
-  // printf("Array do idS ");
-  // printA(arrS, nL);
-  // printf("Array do result ");
-  // printA(result, 2*nL);
-  // printf("\n");
+  printf("p(%d) - Array do result \n", id);
+  printA(result, 2*nL);
+  printf("\n");
 
   //4.
   if(id > idS){
     //guardar os dados da segunda metade
-    for(int i = id*nL, j = nL; i < (id+1)*nL; i++, j++){
+    for(int i = start, j = nL; i < end; i++, j++){
       A[i] = result[j];
     }
   }else{
     //guardar os dados da primeira metade
-    for(int i = id*nL, j = 0; i < (idS+1)*nL; i++, j++){
+    for(int i = startS, j = 0; i < endS; i++, j++){
       A[i] = result[j];
     }
   }
+  printf("p(%d) - A = ", id);
+  printA(A, n);
+  free(result);
+  printf("p(%d) - terminei o sort\n", id);
 }
 
 void parallelOddEvenSort(int A[], int n){
@@ -155,6 +183,7 @@ void parallelOddEvenSort(int A[], int n){
           // compareSplitMin(id+1); 
           compareSplit(id+1,A,n);
         }else{
+          // um unico processo
           compareSplit(id,A,n);
         }
       }else{
@@ -180,14 +209,13 @@ void writeResult(int A[], int n, char fileName[100]){
     // Closing the file using fclose()
     fclose(filePointer);
     printf("Data successfully written in file %s\n", fileName);
-    printf("The file is now closed.") ;
+    printf("The file is now closed.\n") ;
   }
 }
 
-void getNumbers(int A[], int n, char fileName[100]){
-  FILE *filePointer = fopen("1.txt", "r");
+void getNumbers(int* A, int n, char fileName[100]){
+  FILE *filePointer = fopen(fileName, "r");
   // display numbers
-  // printf("\nNumbers:\n");
   for(int i = 0; i < n; i++) fscanf(filePointer, "%d", &A[i]);
   printf("\nEnd of file.\n");
   // close connection
@@ -196,22 +224,23 @@ void getNumbers(int A[], int n, char fileName[100]){
 
 int main(int argc, char** argv){
   MPI_Init(&argc, &argv);
-  int id, np, count = 10000, A[count];
+  int id, np, count = 10, *A = (int *)malloc(sizeof(int)*count);
   MPI_Comm_rank(MPI_COMM_WORLD, &id);
   MPI_Comm_size(MPI_COMM_WORLD, &np);
-  MPI_Status status;
 
   if(id == 0){
-    getNumbers(A, count, "1.txt");
-    for(int i = 1; i < np; i++){
-      MPI_Send(A, count, MPI_INT, i, 0, MPI_COMM_WORLD);
-    }
+    getNumbers(A, count, "4.txt");
+    MPI_Bcast(A, count, MPI_INT, 0, MPI_COMM_WORLD);
   }else{
-    MPI_Recv(A, count, MPI_INT, 0, 0, MPI_COMM_WORLD, &status);
+    MPI_Bcast(A, count, MPI_INT, 0, MPI_COMM_WORLD);
   }
   //printA(A, count);
   parallelOddEvenSort(A, count);
   MPI_Finalize();
-  if(id == 0) writeResult(A, count, "result.tx");
+  if(id == 0){
+    writeResult(A, count, "result.tx");
+    printf("%d\n", isSorted(A, count));
+  }
+  free(A);
   return 0;
 }
