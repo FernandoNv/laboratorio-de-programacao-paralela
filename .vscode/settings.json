@@ -1,6 +1,7 @@
 {
   "files.associations": {
     "*.html": "html",
-    "math.h": "c"
+    "math.h": "c",
+    "mpi.h": "c"
   }
 }
