@@ -177,16 +177,28 @@ void enviar_msg( int meu_ranque , int send_op , int cont ){
 
         // TODO
         case SSEND:
+            MPI_Ssend( &cont , 1 , MPI_INT, 0 , 0 , MPI_COMM_WORLD );
             break;
         
         // TODO
         case RSEND:
+            MPI_Rsend( &cont , 1 , MPI_INT, 0 , 0 , MPI_COMM_WORLD );
             break;
     }
 }
 
-//TODO
-void update_metrics( int i , double dt , double *desv_pdr , double *media );
+//TODO fazer para desvio padrao
+void update_metrics( int i , double dt , double *desv_pdr , double *media ){
+
+   if( !i ){
+      *media = dt;
+      *desv_pdr = 0;
+      return;
+   }
+
+   double old_media = *media;
+   *media = ( old_media*i + dt )/( i + 1 ); 
+}
 
 int main( int argc, char *argv[] ){
 
@@ -199,9 +211,9 @@ int main( int argc, char *argv[] ){
     // int num_repeats;
     // escolher_reps( &num_repeats );
 
-    int send_op = SEND;
+    int send_op = SSEND;
     int recv_op = RECV;
-    int num_repeats = 10;
+    int num_repeats = 20;
 
     // printf( "\n%d %d %d" , send_op , recv_op , num_repeats );
 
