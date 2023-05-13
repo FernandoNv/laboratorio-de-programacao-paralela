@@ -1,83 +1,46 @@
+/* -----------------------------------------------------------
+ Esse arquivo é o benchmark para a contagem de todos os primos
+ existentes entre 0 e 200000. Nele são testados todos os tipos
+ de comunicação ponto a ponto e é calculado o tempo médio de 
+ execução e o seu desvio padrão.
+ 
+ O modelo de calculo de primo é por força bruta.
+
+ Primeiro é medido o tempo para a contagem sem paralelismo, depois
+ é feito o calculo para cada tipo de comunicação ponto a ponto a 
+ ponto.
+ 
+ Tem-se 4 tipos de envio e 2 de recebimento, totalizando oito tipos
+ de comunicação.
+
+ INCOMPLETO
+ ---------------------------------------------------------------- */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <time.h>
 #include "mpi.h"
+
 
 #define TRUE 1
 #define FALSE 0
 
-#define SEND  0
-#define ISEND 1
-#define SSEND 2
-#define RSEND 3
+// --------------------------------------------------
+// Tipos de envio 
+#define SEND  0 // bloqueante
+#define ISEND 1 // não bloqueante
+#define SSEND 2 // sincrona
+#define RSEND 3 // ready
 
-#define RECV  0
-#define IRECV 1
+// --------------------------------------------------
+// Tipos de recebimento 
+#define RECV  0 // bloqueante
+#define IRECV 1 // não bloqueante
 
-#define N 200000 // Numeros a serem confiridos se primos  
+#define N 200000  // Numeros a serem confiridos se primos  
 #define ROOT 0    // Processo central
-
-// ---------------------------------------------------------------------
-// ESCOLHA DE PARÂMETROS 
-void escolher_send( int *op ){
-
-    while( TRUE ){
-
-        printf( "opcoes de envio:\n" );
-
-        printf("\n0 - Send");
-        printf( "\n1 - ISend" );
-        // printf( "\n2 - SSend" );
-        // printf( "\n3 - RSend" );
-
-        printf( "\n\nSua escolha: " );
-        scanf("%d\n" , op );
-
-        if( ( *op > 1 ) || ( *op < 0 ) )
-            printf( "\nescolha inválida\n");
-        else
-            break;
-
-    }
-
-}
-
-void escolher_recv( int *op ){
-
-    while( TRUE ){
-
-        printf( "\nopcoes de recebimento:\n" );
-
-        printf("\n0 - Recv");
-        printf( "\n1 - IRecv" );
-
-        printf( "\n\nSua escolha: " );
-        scanf("%d\n" , op );
-
-        if( ( *op > 1 ) || ( *op < 0 ) )
-            printf( "\nescolha inválida\n");
-        else
-            break;
-
-    }
-
-}
-
-void escolher_reps( int *num_rep ){
-
-    while( TRUE ){
-
-        printf( "\nnumero de repeticoes: " );
-        scanf("%d\n" , num_rep );
-
-        if( *num_rep < 1  )
-            printf( "\nescolha inválida\n");
-        else
-            break;
-
-    }
-
-}
+#define REPEAT 20 // iterações do benchmarks
 
 //----------------------------------------------------------------------
 // CALCULO DO PRIMO
@@ -100,7 +63,7 @@ int primo_bf(long int n){ /* mpi_primos.c  */
     return 1;
 }
 
-int contar_primos( int meu_ranque , int num_procs ){
+int contar_primos_par( int meu_ranque , int num_procs ){
     
     /*
 
@@ -121,6 +84,20 @@ int contar_primos( int meu_ranque , int num_procs ){
         if ( primo_bf(i) )
             cont++;
     return cont;
+}
+
+int contar_primos_ser(){
+
+    /* --------------------------------------
+    Contagem de primos sem o uso de paralelismo
+    ---------------------------------------- */
+
+    int cont = 1; // considerando 2 que é o unico par primo
+    for( int i = 3 ; i < N ; i += 2 )
+        if( primo_bf( i ) )
+            cont++;
+    return cont;
+
 }
 
 // --------------------------------------------------------------------
@@ -200,22 +177,11 @@ void update_metrics( int i , double dt , double *desv_pdr , double *media ){
    *media = ( old_media*i + dt )/( i + 1 ); 
 }
 
-int main( int argc, char *argv[] ){
+int par_bench( int send_op , int recv_op , int argc, char *argv[] ){
 
-    // int send_op;
-    // escolher_send( &send_op );
-
-    // int recv_op;
-    // escolher_recv( &recv_op );
-
-    // int num_repeats;
-    // escolher_reps( &num_repeats );
-
-    int send_op = SSEND;
-    int recv_op = RECV;
-    int num_repeats = 20;
-
-    // printf( "\n%d %d %d" , send_op , recv_op , num_repeats );
+    /* ----------------------------------------------------------
+    Faz o benchmarking com o modelo de paralelismo escolhido
+    ------------------------------------------------------------ */
 
     double media, desv_pdr;
     media = 0;
@@ -227,13 +193,13 @@ int main( int argc, char *argv[] ){
     MPI_Comm_rank(MPI_COMM_WORLD, &meu_ranque);
     MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
 
-    for( int i = 0 ; i < num_repeats ; i++ ){
+    for( int i = 0 ; i < REPEAT ; i++ ){
 
         if( meu_ranque == ROOT ){
             
             double t_inicial = MPI_Wtime();
 
-            int cont = contar_primos( meu_ranque , num_procs );
+            int cont = contar_primos_par( meu_ranque , num_procs );
             int total = receber_msg( num_procs , recv_op ) + cont;
 
             double t_final = MPI_Wtime();  
@@ -246,11 +212,11 @@ int main( int argc, char *argv[] ){
                 printf("\nQuant. de primos entre 1 e %d: %d \n", N , total );
             printf( "\nTempo de execucao para i = %d: %1.8f ms", i , dt );
 
-            if( i == num_repeats - 1 )
+            if( i == REPEAT - 1 )
                 printf( "\n" );
         }
         else{
-            int cont = contar_primos( meu_ranque , num_procs );
+            int cont = contar_primos_par( meu_ranque , num_procs );
             enviar_msg( meu_ranque , send_op , cont );
         }
 
@@ -258,5 +224,29 @@ int main( int argc, char *argv[] ){
 
     MPI_Finalize();
     return 0;
+}
 
+int ser_bench( ){
+
+    double media, desv_pdr;
+    desv_pdr = 0;
+    double inicio , fim , dt;
+    for( int i = 0 ; i < REPEAT ; i++ ){
+        
+        inicio = ( ( double ) clock() )/( CLOCKS_PER_SEC/1000);
+        contar_primos_ser();
+        fim = ( ( double ) clock() )/( CLOCKS_PER_SEC/1000);
+
+        dt = fim - inicio;
+        update_metrics( i , dt , &desv_pdr , &media );
+
+    }
+
+    printf( "sem paralelismo: media = %1.8f , desv_pdr = %1.8f\n", media , desv_pdr);
+    return 0;
+}
+
+int main(){
+    ser_bench();
+    return 0;
 }
