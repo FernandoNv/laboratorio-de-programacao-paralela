@@ -40,7 +40,7 @@
 
 #define N 200000  // Numeros a serem confiridos se primos  
 #define ROOT 0    // Processo central
-#define REPEAT 20 // iterações do benchmarks
+#define REPEAT 100 // iterações do benchmarks
 
 //----------------------------------------------------------------------
 // CALCULO DO PRIMO
@@ -177,22 +177,12 @@ void update_metrics( int i , double dt , double *desv_pdr , double *media ){
    *media = ( old_media*i + dt )/( i + 1 ); 
 }
 
-int par_bench( int send_op , int recv_op , int argc, char *argv[] ){
+int par_bench( int send_op , int recv_op , int num_procs, int meu_ranque ){
 
     /* ----------------------------------------------------------
     Faz o benchmarking com o modelo de paralelismo escolhido
     ------------------------------------------------------------ */
-
     double media, desv_pdr;
-    media = 0;
-    desv_pdr = -1;
-
-    MPI_Init(&argc, &argv);
-
-    int meu_ranque, num_procs;
-    MPI_Comm_rank(MPI_COMM_WORLD, &meu_ranque);
-    MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
-
     for( int i = 0 ; i < REPEAT ; i++ ){
 
         if( meu_ranque == ROOT ){
@@ -204,16 +194,14 @@ int par_bench( int send_op , int recv_op , int argc, char *argv[] ){
 
             double t_final = MPI_Wtime();  
             float dt = 1000*( t_final - t_inicial );
-
-            // TODO
-            // update_metrics( i , dt , &desv_pdr , &media );
-
-            if( !i )
-                printf("\nQuant. de primos entre 1 e %d: %d \n", N , total );
-            printf( "\nTempo de execucao para i = %d: %1.8f ms", i , dt );
-
-            if( i == REPEAT - 1 )
-                printf( "\n" );
+            update_metrics( i , dt , &desv_pdr , &media );
+            
+            if( i == REPEAT - 1 ){
+                char *snames[ 4 ] = {"SEND","ISEND","SSEND","RSEND"};
+                char *rnames[ 2 ] = {"RECV","IRECV"};
+                printf( "\n%s , %s :", snames[ send_op ] , rnames[ recv_op ] );
+                printf( "media = %1.8f , desv_pdr = %1.8f", media , desv_pdr);
+            }
         }
         else{
             int cont = contar_primos_par( meu_ranque , num_procs );
@@ -221,32 +209,52 @@ int par_bench( int send_op , int recv_op , int argc, char *argv[] ){
         }
 
     }
-
-    MPI_Finalize();
     return 0;
 }
 
-int ser_bench( ){
+void ser_bench( int meu_ranque ){
 
     double media, desv_pdr;
-    desv_pdr = 0;
-    double inicio , fim , dt;
+    double t_inicial , t_final , dt;
     for( int i = 0 ; i < REPEAT ; i++ ){
         
-        inicio = ( ( double ) clock() )/( CLOCKS_PER_SEC/1000);
+        t_inicial = MPI_Wtime();
         contar_primos_ser();
-        fim = ( ( double ) clock() )/( CLOCKS_PER_SEC/1000);
+        t_final = MPI_Wtime();
 
-        dt = fim - inicio;
+        dt = 1000*( t_final - t_inicial );
         update_metrics( i , dt , &desv_pdr , &media );
 
     }
 
-    printf( "sem paralelismo: media = %1.8f , desv_pdr = %1.8f\n", media , desv_pdr);
-    return 0;
+    if( meu_ranque == ROOT )
+        printf( "\nsem paralelismo: media = %1.8f , desv_pdr = %1.8f\n", media , desv_pdr);
 }
 
-int main(){
-    ser_bench();
+int main( int argc , char *argv[] ){
+
+    MPI_Init(&argc, &argv);
+
+    int meu_ranque, num_procs;
+    MPI_Comm_rank(MPI_COMM_WORLD, &meu_ranque);
+    MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
+
+    if( meu_ranque == ROOT){
+        printf( "contagem de primos( tempos em milisegundos )");
+        printf("\nmax_val = %d", N );
+        printf("\nnum_procs = %d", num_procs );
+        printf("\niteracoes = %d\n", REPEAT );
+    }
+    ser_bench( meu_ranque );
+
+    for( int send_op = 0 ; send_op < 4 ; send_op++ )
+        for( int recv_op = 0 ; recv_op < 2 ; recv_op++ )
+            par_bench( send_op , recv_op , num_procs , meu_ranque );
+
+    if ( meu_ranque == ROOT )
+        printf( "\n");
+
+    MPI_Finalize();
+
     return 0;
 }
