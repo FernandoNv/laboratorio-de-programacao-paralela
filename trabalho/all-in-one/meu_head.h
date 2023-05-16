@@ -17,8 +17,8 @@
 
 #define N 200000  // Numeros a serem confiridos se primos  
 #define ROOT 0     // Processo central
-#define REPEAT 500 // iterações do benchmarks
-#define BAG_SIZE 500
+#define REPEAT 100 // iterações do benchmarks
+#define BAG_SIZE 2000
 
 int primo_bf(long int n){ /* mpi_primos.c  */
 
