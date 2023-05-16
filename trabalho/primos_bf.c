@@ -107,17 +107,15 @@ int receber_msg( int num_procs , int recv_op ){
     int total = 1;
     switch( recv_op ){
 
-        case RECV:
-
+        case RECV: {
             int cont_outro; 
             for( int i = 1 ; i < num_procs ; i++ ){
                 MPI_Recv( &cont_outro , 1 , MPI_INT , i , 0 , MPI_COMM_WORLD , MPI_STATUS_IGNORE );
                 total = total + cont_outro;
             }
             break;
-        
-        case IRECV:
-
+        }
+        case IRECV:{
             MPI_Request *request;
             request = ( MPI_Request *) malloc( sizeof( MPI_Request )*( num_procs - 1 ) );
 
@@ -133,6 +131,7 @@ int receber_msg( int num_procs , int recv_op ){
             }
 
             break;
+        }
     }
 
     return total;
@@ -143,24 +142,27 @@ void enviar_msg( int meu_ranque , int send_op , int cont ){
     
     switch( send_op ){
 
-        case SEND:
+        case SEND:{
             MPI_Send( &cont , 1 , MPI_INT, 0 , 0 , MPI_COMM_WORLD );
             break;
+        }
         
-        case ISEND:
+        case ISEND:{
             MPI_Request request;
             MPI_Isend( &cont , 1 , MPI_INT, 0 , 0 , MPI_COMM_WORLD , &request );
             break;
+        }
 
         // TODO
-        case SSEND:
+        case SSEND:{
             MPI_Ssend( &cont , 1 , MPI_INT, 0 , 0 , MPI_COMM_WORLD );
             break;
-        
+        }
         // TODO
-        case RSEND:
+        case RSEND:{
             MPI_Rsend( &cont , 1 , MPI_INT, 0 , 0 , MPI_COMM_WORLD );
             break;
+        }
     }
 }
 
