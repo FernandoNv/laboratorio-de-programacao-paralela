@@ -18,6 +18,7 @@
 #define N 200000  // Numeros a serem confiridos se primos  
 #define ROOT 0     // Processo central
 #define REPEAT 500 // iterações do benchmarks
+#define BAG_SIZE 500
 
 int primo_bf(long int n){ /* mpi_primos.c  */
 
@@ -36,6 +37,23 @@ int primo_bf(long int n){ /* mpi_primos.c  */
     }
 
     return 1;
+}
+
+int count_prime_between( int start , int end ){
+
+
+    if( !( start%2 ) )
+        start++;
+    
+    if ( !( end%2 ) )
+        end--;
+    
+    int count = 0;
+    for( int i = 1 ; i < N ; i += 2 )
+        if( primo_bf( i ) )
+            count++;
+    return count;
+
 }
 
 

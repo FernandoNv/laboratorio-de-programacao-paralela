@@ -18,7 +18,7 @@ int main(int argc, char *argv[]){
   double t_inicial, t_final;
   int cont = 0, total = 0;
   int i, n;
-  int meu_ranque, num_procs, inicio, dest, raiz = 0, tag = 1, stop = 0;
+  int meu_ranque, num_procs, inicio, dest, raiz = 0, tag = 1;
   MPI_Status estado;
   /* Verifica o número de argumentos passados */
   if (argc < 2){
@@ -50,6 +50,7 @@ int main(int argc, char *argv[]){
     }
 
     /* Fica recebendo as contagens parciais de cada processo */
+    int stop = 0;
     while (stop < (num_procs - 1)){
       MPI_Recv(&cont, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &estado);
       total += cont;
