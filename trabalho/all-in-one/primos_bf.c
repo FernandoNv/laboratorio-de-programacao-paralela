@@ -13,56 +13,18 @@
  Tem-se 4 tipos de envio e 2 de recebimento, totalizando oito tipos
  de comunicação.
 
- INCOMPLETO
- ---------------------------------------------------------------- */
+COMPLETO
+---------------------------------------------------------------- */
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
 #include "mpi.h"
-
-
-#define TRUE 1
-#define FALSE 0
-
-// --------------------------------------------------
-// Tipos de envio 
-#define SEND  0 // bloqueante
-#define ISEND 1 // não bloqueante
-#define SSEND 2 // sincrona
-#define RSEND 3 // ready
-
-// --------------------------------------------------
-// Tipos de recebimento 
-#define RECV  0 // bloqueante
-#define IRECV 1 // não bloqueante
-
-#define N 200000  // Numeros a serem confiridos se primos  
-#define ROOT 0    // Processo central
-#define REPEAT 100 // iterações do benchmarks
+#include "meu_head.h"
 
 //----------------------------------------------------------------------
 // CALCULO DO PRIMO
-int primo_bf(long int n){ /* mpi_primos.c  */
-
-    /*
-
-    Abordagem de força bruta para decidir se um numero
-    é Primo
-
-    */
-    if( n < 2)
-        return 0;
-    
-    for (int i = 3; i < (int)(sqrt(n) + 1); i += 2){
-        if ( !( n % i ) )
-            return 0;
-    }
-
-    return 1;
-}
-
 int contar_primos_par( int meu_ranque , int num_procs ){
     
     /*
@@ -166,25 +128,6 @@ void enviar_msg( int meu_ranque , int send_op , int cont ){
     }
 }
 
-//TODO fazer para desvio padrao
-void update_metrics( int i , double dt , double *desv_pdr , double *media ){
-
-   if( !i ){
-      *media = dt;
-      *desv_pdr = 0;
-      return;
-   }
-
-   // Atualizando media 
-   double old_media = *media;
-   *media = ( old_media*i + dt )/( i + 1 ); 
-
-   double old_desv_padr = *desv_pdr;
-   double omega_1 = i*( pow( old_desv_padr , 2 ) + pow( *media - old_media , 2 ) );
-   double omega_2 = pow( *media - dt , 2 );
-   *desv_pdr = sqrt( ( omega_1 + omega_2 )/( i + 1 ) );
-}
-
 int par_bench( int send_op , int recv_op , int num_procs, int meu_ranque ){
 
     /* ----------------------------------------------------------
@@ -236,7 +179,7 @@ void ser_bench( int meu_ranque ){
     }
 
     if( meu_ranque == ROOT )
-        printf( "\nsem paralelismo: media = %1.8f, desv_pdr = %1.8f", media, desv_pdr );
+        printf( "\nsem paralelismo: media = %1.8f, desv_pdr = %1.8f\n", media, desv_pdr );
 }
 
 int main( int argc , char *argv[] ){
