@@ -1,9 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include "mpi.h"
 #include <math.h>
+#include "mpi.h"
 #define TAMANHO 500000
-
 int primo(int n){
   int i;
   for (i = 3; i < (int)(sqrt(n) + 1); i += 2){
@@ -37,7 +36,8 @@ int main(int argc, char *argv[]){
   if (num_procs < 2){
     printf("Este programa deve ser executado com no mínimo dois processos.\n");
     MPI_Abort(MPI_COMM_WORLD, 1);
-    return (1);
+
+    return 1;
   }
 
   /* Registra o tempo inicial de execução do programa */
@@ -58,7 +58,7 @@ int main(int argc, char *argv[]){
         tag = 99;
         stop++;
       }
-      /* Envia um nvo pedaço com TAMANHO números para o mesmo processo*/
+      /* Envia um novo pedaço com TAMANHO números para o mesmo processo*/
       MPI_Send(&inicio, 1, MPI_INT, dest, tag, MPI_COMM_WORLD);
       inicio += TAMANHO;
     }
@@ -89,5 +89,6 @@ int main(int argc, char *argv[]){
   /* Finaliza o programa */
   MPI_Barrier(MPI_COMM_WORLD);
   MPI_Finalize();
-  return (0);
+
+  return 0;
 }
