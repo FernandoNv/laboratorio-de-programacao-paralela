@@ -2,8 +2,8 @@
 #include <stdlib.h>
 #include <math.h>
 #include "mpi.h"
-#define TAMANHO 500000
-#define N 2000000
+#define TAMANHO 5000
+#define N 200000
 int primo(int n){
   int i;
   for (i = 3; i < (int)(sqrt(n) + 1); i += 2){
