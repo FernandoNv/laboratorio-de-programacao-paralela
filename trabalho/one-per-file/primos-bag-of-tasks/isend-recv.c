@@ -2,7 +2,8 @@
 #include <stdlib.h>
 #include <math.h>
 #include "mpi.h"
-#define TAMANHO 100
+#define TAMANHO 500000
+#define N 2000000
 int primo(int n){
   int i;
   for (i = 3; i < (int)(sqrt(n) + 1); i += 2){
@@ -18,22 +19,21 @@ int main(int argc, char *argv[]){
   double t_inicial, t_final;
   int cont = 0, total = 0;
   int i, n;
-  int meu_ranque, num_procs, inicio, dest, raiz = 0, tag = 1, stop = 0;
+  int meu_ranque, num_procs, inicio, dest, raiz = 0, tag = 1;
   MPI_Status estado;
   /* Verifica o número de argumentos passados */
-  if (argc < 2){
-    printf("Entre com o valor do maior inteiro como parâmetro para o programa.\n");
-    return 0;
-  } else {
-    n = strtol(argv[1], (char **)NULL, 10);
-  }
+  // if (argc < 2){
+  //   printf("Entre com o valor do maior inteiro como parâmetro para o programa.\n");
+  //   return 0;
+  // } else {
+  //   n = strtol(argv[1], (char **)NULL, 10);
+  // }
+  n = N;
 
   MPI_Init(&argc, &argv);
   MPI_Comm_rank(MPI_COMM_WORLD, &meu_ranque);
   MPI_Comm_size(MPI_COMM_WORLD, &num_procs);
-
-  MPI_Request* pedidos_envia;
-  pedidos_envia = (MPI_Request *) malloc(sizeof(MPI_Request)*(num_procs - 1));
+  MPI_Request pedido_envio;
   
   /* Se houver menos que dois processos aborta */
   if (num_procs < 2){
@@ -48,13 +48,23 @@ int main(int argc, char *argv[]){
   
   /* Envia pedaços com TAMANHO números para cada processo */
   if (meu_ranque == 0){
+
+    // total = 5000
+    //
+    // TAM = 50
+    // 1 - 0 : 50
+    // 2 - 50 : 100
+    // 3 - 100 : 150
     for (dest = 1, inicio = 3; dest < num_procs && inicio < n; dest++, inicio += TAMANHO){
-      MPI_Isend(&inicio, 1, MPI_INT, dest, tag, MPI_COMM_WORLD, &pedidos_envia[dest -1]);
+      MPI_Isend(&inicio, 1, MPI_INT, dest, tag, MPI_COMM_WORLD, &pedido_envio);
+      MPI_Wait(&pedido_envio, MPI_STATUS_IGNORE);
     }
-    MPI_Waitall(num_procs - 1 , pedidos_envia, MPI_STATUSES_IGNORE);
 
     /* Fica recebendo as contagens parciais de cada processo */
-    while (stop < (num_procs - 1)){
+    int stop = 0;
+    while (stop < (num_procs - 1) ){
+
+      // cont vai ser a resposta do perifeco
       MPI_Recv(&cont, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &estado);
       total += cont;
       dest = estado.MPI_SOURCE;
@@ -62,12 +72,9 @@ int main(int argc, char *argv[]){
         tag = 99;
         stop++;
       }
-      
       /* Envia um novo pedaço com TAMANHO números para o mesmo processo*/
-      MPI_Request pedido_envio;
       MPI_Isend(&inicio, 1, MPI_INT, dest, tag, MPI_COMM_WORLD, &pedido_envio);
       MPI_Wait(&pedido_envio, MPI_STATUS_IGNORE);
-      
       inicio += TAMANHO;
     }
   } else {
@@ -79,7 +86,6 @@ int main(int argc, char *argv[]){
           if (primo(i) == 1)
             cont++;
         /* Envia a contagem parcial para o processo mestre */
-        MPI_Request pedido_envio;
         MPI_Isend(&cont, 1, MPI_INT, raiz, tag, MPI_COMM_WORLD, &pedido_envio);
         MPI_Wait(&pedido_envio, MPI_STATUS_IGNORE);
       }
@@ -93,7 +99,7 @@ int main(int argc, char *argv[]){
     t_final = MPI_Wtime();
     total += 1; /* Acrescenta o 2, que é primo */
     printf("Quant. de primos entre 1 e %d: %d \n", n, total);
-    printf("Tempo de execucao: %1.3f \n", t_final - t_inicial);
+    printf("Tempo de execucao: %1.3f \n", 1000*( t_final - t_inicial ) );
   }
 
   /* Finaliza o programa */

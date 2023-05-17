@@ -3,6 +3,7 @@
 #include <math.h>
 #include "mpi.h"
 #define TAMANHO 500000
+#define N 2000000
 int primo(int n){
   int i;
   for (i = 3; i < (int)(sqrt(n) + 1); i += 2){
@@ -18,15 +19,16 @@ int main(int argc, char *argv[]){
   double t_inicial, t_final;
   int cont = 0, total = 0;
   int i, n;
-  int meu_ranque, num_procs, inicio, dest, raiz = 0, tag = 1, stop = 0;
+  int meu_ranque, num_procs, inicio, dest, raiz = 0, tag = 1;
   MPI_Status estado;
   /* Verifica o número de argumentos passados */
-  if (argc < 2){
-    printf("Entre com o valor do maior inteiro como parâmetro para o programa.\n");
-    return 0;
-  } else {
-    n = strtol(argv[1], (char **)NULL, 10);
-  }
+  // if (argc < 2){
+  //   printf("Entre com o valor do maior inteiro como parâmetro para o programa.\n");
+  //   return 0;
+  // } else {
+  //   n = strtol(argv[1], (char **)NULL, 10);
+  // }
+  n = N;
 
   MPI_Init(&argc, &argv);
   MPI_Comm_rank(MPI_COMM_WORLD, &meu_ranque);
@@ -45,12 +47,22 @@ int main(int argc, char *argv[]){
   
   /* Envia pedaços com TAMANHO números para cada processo */
   if (meu_ranque == 0){
+
+    // total = 5000
+    //
+    // TAM = 50
+    // 1 - 0 : 50
+    // 2 - 50 : 100
+    // 3 - 100 : 150
     for (dest = 1, inicio = 3; dest < num_procs && inicio < n; dest++, inicio += TAMANHO){
       MPI_Rsend(&inicio, 1, MPI_INT, dest, tag, MPI_COMM_WORLD);
     }
 
     /* Fica recebendo as contagens parciais de cada processo */
-    while (stop < (num_procs - 1)){
+    int stop = 0;
+    while (stop < (num_procs - 1) ){
+
+      // cont vai ser a resposta do perifeco
       MPI_Recv(&cont, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &estado);
       total += cont;
       dest = estado.MPI_SOURCE;
@@ -83,7 +95,7 @@ int main(int argc, char *argv[]){
     t_final = MPI_Wtime();
     total += 1; /* Acrescenta o 2, que é primo */
     printf("Quant. de primos entre 1 e %d: %d \n", n, total);
-    printf("Tempo de execucao: %1.3f \n", t_final - t_inicial);
+    printf("Tempo de execucao: %1.3f \n", 1000*( t_final - t_inicial ) );
   }
 
   /* Finaliza o programa */
