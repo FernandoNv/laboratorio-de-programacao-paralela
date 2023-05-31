@@ -16,3 +16,11 @@ A princípio, irá retornar o seguinte texto: mpiexec (OpenRTE) 2.1.1
 - para compilar: mpicc seuPrograma.c -o seuPrograma
 - para executar: mpirun -n X SeuPrograma ou mpiexe -np X teste
 ### Onde X é o número de processos. Como não está sendo especificado um "hostfile" com uma lista de hosts e slots, o seu programa executará localmente com aquele número de processos.
+
+## Compilando e executando OpemMPI
+- Fora do programa, pode ser especificado o número de threads que serão disparadas, com o uso da variável de ambiente OMP_NUM_THREADS
+- Dentro do programa, podem ser utilizadas as seguintes opções: omp_numthreads(n), omp_set_num_threads(n)
+- Compilando 
+ gcc omp_hello.c -fopenmp -o teste
+- Executando
+ ./teste
